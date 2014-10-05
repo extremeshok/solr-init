@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# chkconfig: 2345 20 20
+# short-description: Solr
+# description: Startup script for Apache Solr Server by Adrian Jon Kriel
+
+### BEGIN INIT INFO
+# Provides:          vnstat
+# Required-Start:    $local_fs $remote_fs $network
+# Required-Stop:     $local_fs $remote_fs $network
+# Default-Start:
+# Default-Stop:
+# Short-Description: lightweight network traffic monitor
+### END INIT INFO
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+prog="solr"
+RETVAL=0
+PIDFILE="/var/run/solr.pid"
+SOLR_DIR="/opt/solr/core"
+LOG_FILE="/var/log/solr.log"
+JAVA="/usr/bin/java"
+OPTIONS="-Xmx1024m -DSTOP.PORT=8079 -DSTOP.KEY=stopkey -jar start.jar"
+
+start()
+{
+  echo -n $"Starting $prog: "
+  if [ -e "$PIDFILE" ] && [ -e /proc/`cat "$PIDFILE"` ]; then
+    echo -n $"already running.";
+    success "$prog is already running.";
+    echo
+    return 0
+  fi
+  cd $SOLR_DIR
+  nohup $JAVA $OPTIONS > $LOG_FILE 2>&1 &
+  echo $! > $PIDFILE
+  sleep 2
+  RETVAL=$?
+  if [ $RETVAL = 0 ]; then
+    echo "done."
+  else
+    echo "failed. See error code for more information."
+  fi
+  return $RETVAL
+}
+
+stop()
+{
+  echo -n $"Shutting down $prog: "
+  killproc -p $PIDFILE
+  #pkill -f start.jar > /dev/null
+  RETVAL=$?
+  echo
+  rm -f $pidfile
+
+  if [ $RETVAL = 0 ]; then
+    echo "done."
+  else
+    echo "failed. See error code for more information."
+  fi
+
+  return $RETVAL
+}
+
+##NOT USED, purely for reference or if there are future bugs with status $progs
+mystatus()
+{
+  if [ -e "$PIDFILE" ] && [ -e /proc/`cat "$PIDFILE"` ]; then
+    echo -n $"$prog is already running.";
+    success "$prog is already running.";
+    echo
+    return 0
+  else
+    echo -n $"Not running.";
+    echo
+    return 0
+  fi
+
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+restart)
+  stop
+  start
+  ;;
+status)
+  #mystatus
+  status $prog
+  ;;
+*)
+  echo $"Usage: solr {start|stop|restart|status}" >&2
+  RETVAL=3
+esac
+exit $RETVAL
